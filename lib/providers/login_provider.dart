@@ -1,59 +1,108 @@
-import 'package:absensi_app/locals/local_database.dart';
-import 'package:absensi_app/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:bcrypt/bcrypt.dart'; // Import bcrypt
-import 'package:shared_preferences/shared_preferences.dart'; // Import shared_preferences
+import 'package:absensi_app/providers/auth_provider.dart'; // Pastikan path ini benar
 
-class LoginProvider with ChangeNotifier {
-  final LocalDatabase _db = LocalDatabase();
+class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
+
+  @override
+  _LoginPageState createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
   String _errorMessage = '';
 
-  bool get isLoading => _isLoading;
-  String get errorMessage => _errorMessage;
-
-  void setLoading(bool value) {
-    _isLoading = value;
-    notifyListeners();
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
-  void setErrorMessage(String value) {
-    _errorMessage = value;
-    notifyListeners();
-  }
+  Future<void> _login(BuildContext context) async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = '';
+    });
 
-  Future<void> login(
-    BuildContext context,
-    String username,
-    String password,
-  ) async {
-    setLoading(true);
-    setErrorMessage('');
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    bool success = await authProvider.login(
+      _emailController.text.trim(),
+      _passwordController.text,
+    );
 
-    try {
-      List<Map<String, dynamic>> users = await _db.getUserByUsername(username);
-      if (users.isNotEmpty) {
-        Map<String, dynamic> user = users.first;
-        final String storedPassword = user['password'];
-
-        if (BCrypt.checkpw(password, storedPassword)) {
-          authProvider.setLoggedInUserId(user['id']);
-          authProvider.setAuthenticated(true);
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setInt('userId', user['id']);
-          Navigator.pushReplacementNamed(context, '/home');
-        } else {
-          setErrorMessage('Username atau password salah.');
-        }
-      } else {
-        setErrorMessage('Username atau password salah.');
-      }
-    } catch (e) {
-      setErrorMessage('Terjadi kesalahan: $e');
-    } finally {
-      setLoading(false);
+    if (success) {
+      Navigator.pushReplacementNamed(context, '/home');
+    } else {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = authProvider.errorMessage!;
+      });
     }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Login')),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              const Text(
+                'Selamat Datang!',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _passwordController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Password',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 20),
+              if (_errorMessage.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12.0),
+                  child: Text(
+                    _errorMessage,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                ),
+              ElevatedButton(
+                onPressed: _isLoading ? null : () => _login(context),
+                child:
+                    _isLoading
+                        ? const CircularProgressIndicator()
+                        : const Text('Login'),
+              ),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () {
+                  Navigator.pushNamed(context, '/register');
+                },
+                child: const Text('Belum punya akun? Daftar di sini'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

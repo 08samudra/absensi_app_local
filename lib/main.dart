@@ -1,18 +1,22 @@
-import 'package:absensi_app/locals/local_database.dart';
-import 'package:absensi_app/pages_app/absent_page.dart';
 import 'package:absensi_app/pages_app/edit_profile_page.dart';
-import 'package:absensi_app/pages_app/home_page.dart';
 import 'package:absensi_app/pages_app/login_page.dart';
 import 'package:absensi_app/pages_app/profil_page.dart';
 import 'package:absensi_app/pages_app/register_page.dart';
 import 'package:absensi_app/pages_app/riwayat_absen_page.dart';
-import 'package:absensi_app/providers/absen_provider.dart';
-import 'package:absensi_app/providers/auth_provider.dart';
 import 'package:absensi_app/providers/home_providers.dart';
-import 'package:absensi_app/providers/register_provider.dart';
-import 'package:absensi_app/providers/riwayat_absen_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:absensi_app/providers/auth_provider.dart'; // Pastikan path ini benar
+import 'package:absensi_app/providers/register_provider.dart'; // Pastikan path ini benar
+
+import 'package:absensi_app/providers/absen_provider.dart'; // Pastikan path ini benar
+import 'package:absensi_app/providers/riwayat_absen_provider.dart'; // Pastikan path ini benar
+
+import 'package:absensi_app/pages_app/home_page.dart'; // Pastikan path ini benar
+
+import 'package:absensi_app/pages_app/absent_page.dart'; // Pastikan path ini benar
+
+import 'package:absensi_app/locals/local_database.dart'; // Pastikan path ini benar
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,7 +31,7 @@ void main() async {
         ChangeNotifierProvider(create: (context) => HomeProvider()),
         ChangeNotifierProvider(create: (context) => AbsenProvider()),
         ChangeNotifierProvider(create: (context) => RiwayatAbsenProvider()),
-        // Anda bisa menambahkan provider lain di sini jika ada
+        // Tambahkan provider lain jika ada
       ],
       child: const MyApp(),
     ),
