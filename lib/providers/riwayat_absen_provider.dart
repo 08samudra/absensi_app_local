@@ -2,7 +2,6 @@ import 'package:absensi_app/locals/local_database.dart';
 import 'package:absensi_app/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 
 class RiwayatAbsenProvider with ChangeNotifier {
   final LocalDatabase _db = LocalDatabase();

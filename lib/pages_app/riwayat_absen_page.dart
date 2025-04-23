@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 class RiwayatAbsenPage extends StatefulWidget {
+  const RiwayatAbsenPage({super.key});
+
   @override
   _RiwayatAbsenPageState createState() => _RiwayatAbsenPageState();
 }

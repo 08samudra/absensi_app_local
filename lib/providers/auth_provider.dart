@@ -5,85 +5,103 @@ import 'package:bcrypt/bcrypt.dart';
 
 class AuthProvider with ChangeNotifier {
   final LocalDatabase _db = LocalDatabase();
-  bool _isAuthenticated = false;
-  int? _loggedInUserId;
+  bool _isLoading = false;
   String? _errorMessage = '';
+  int? _loggedInUserId;
 
-  bool get isAuthenticated => _isAuthenticated;
-  int? get loggedInUserId => _loggedInUserId;
+  bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  int? get loggedInUserId => _loggedInUserId;
 
-  // Metode baru untuk mengatur ID pengguna yang login
-  void setLoggedInUserId(int userId) {
+  void setInitialLoggedInUserId(int? userId) {
     _loggedInUserId = userId;
     notifyListeners();
   }
 
-  // Metode baru untuk mengatur status autentikasi
-  void setAuthenticated(bool value) {
-    _isAuthenticated = value;
+  void clearErrorMessage() {
+    _errorMessage = null;
     notifyListeners();
   }
 
-  Future<bool> register(
-    String username,
-    String password,
-    String name,
+  Future<void> login(
+    BuildContext context,
     String email,
+    String password,
   ) async {
-    // Enkripsi password sebelum menyimpan
-    final salt = BCrypt.gensalt();
-    final String encryptedPassword = BCrypt.hashpw(password, salt);
-
-    int userId = await _db.register(
-      name,
-      email,
-      encryptedPassword,
-    ); // Gunakan metode register dari LocalDatabase
-    if (userId > 0) {
-      return true;
-    }
-    _errorMessage = 'Gagal mendaftar.';
+    _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
-    return false;
+
+    try {
+      final user = await _db.getUserByEmail(email);
+      if (user != null) {
+        final String storedPassword = user['password'];
+        if (BCrypt.checkpw(password, storedPassword)) {
+          _loggedInUserId = user['user_id'];
+          print('Login Berhasil. User ID: $_loggedInUserId');
+          SharedPreferences prefs = await SharedPreferences.getInstance();
+          await prefs.setInt('userId', _loggedInUserId!);
+          print('User ID disimpan: $_loggedInUserId');
+          Navigator.pushReplacementNamed(context, '/home');
+        } else {
+          _errorMessage = 'Email atau password salah.';
+          print('Login Gagal: Password salah.');
+        }
+      } else {
+        _errorMessage = 'Email atau password salah.';
+        print('Login Gagal: Email tidak ditemukan.');
+      }
+    } catch (e) {
+      _errorMessage = 'Terjadi kesalahan saat login: $e';
+      print('Error saat login: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
-  Future<bool> login(String username, String password) async {
-    // Kita perlu mengambil user berdasarkan username, lalu verifikasi password
-    // Asumsi di LocalDatabase ada fungsi getUserByUsername
-    List<Map<String, dynamic>> users = await _db.getUserByUsername(username);
-    if (users.isNotEmpty) {
-      Map<String, dynamic> user = users.first;
-      final String storedPassword = user['password'];
+  Future<bool> register(String name, String email, String password) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
 
-      // Verifikasi password
-      if (BCrypt.checkpw(password, storedPassword)) {
-        _isAuthenticated = true;
-        _loggedInUserId =
-            user['user_id']; // Gunakan user_id sesuai dengan skema tabel
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setInt('userId', _loggedInUserId!);
+    try {
+      // Hash the password
+      final salt = BCrypt.gensalt();
+      final String hashedPassword = BCrypt.hashpw(password, salt);
+
+      int userId = await _db.register(name, email, hashedPassword);
+      if (userId > 0) {
+        _isLoading = false;
         notifyListeners();
         return true;
+      } else {
+        _errorMessage = 'Gagal melakukan registrasi.';
+        notifyListeners();
+        return false;
       }
+    } catch (e) {
+      _errorMessage = 'Terjadi kesalahan saat registrasi: $e';
+      notifyListeners();
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
-    _errorMessage = 'Username atau password salah.';
-    notifyListeners();
-    return false;
   }
 
   Future<void> checkAuthStatus() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     _loggedInUserId = prefs.getInt('userId');
-    _isAuthenticated = _loggedInUserId != null;
     notifyListeners();
   }
 
-  Future<void> logout() async {
-    _isAuthenticated = false;
+  Future<void> logout(BuildContext context) async {
     _loggedInUserId = null;
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.remove('userId');
+    print('User ID dihapus');
+    Navigator.pushReplacementNamed(context, '/login');
     notifyListeners();
   }
 }

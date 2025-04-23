@@ -57,13 +57,13 @@ class LocalDatabase {
     ''');
   }
 
-  // Fungsi untuk login
-  Future<Map<String, dynamic>?> login(String email, String password) async {
+  // Fungsi untuk login (hanya mengambil user berdasarkan email)
+  Future<Map<String, dynamic>?> getUserByEmail(String email) async {
     final db = await database;
     final List<Map<String, dynamic>> result = await db.query(
       'users',
-      where: 'email = ? AND password = ?',
-      whereArgs: [email, password],
+      where: 'email = ?',
+      whereArgs: [email],
     );
     if (result.isNotEmpty) {
       return result.first;
@@ -89,15 +89,15 @@ class LocalDatabase {
     return userId;
   }
 
-  // Fungsi untuk mendapatkan user berdasarkan email (untuk login)
-  Future<List<Map<String, dynamic>>> getUserByUsername(String username) async {
-    final db = await database;
-    return await db.query(
-      'users',
-      where: 'email = ?', // Asumsi username adalah email
-      whereArgs: [username],
-    );
-  }
+  // Fungsi untuk mendapatkan user berdasarkan email (untuk login) - DUPLIKAT, HAPUS SAJA
+  // Future<List<Map<String, dynamic>>> getUserByUsername(String username) async {
+  //   final db = await database;
+  //   return await db.query(
+  //     'users',
+  //     where: 'email = ?', // Asumsi username adalah email
+  //     whereArgs: [username],
+  //   );
+  // }
 
   // Fungsi untuk mendapatkan profil pengguna
   Future<Map<String, dynamic>?> getProfile(int userId) async {

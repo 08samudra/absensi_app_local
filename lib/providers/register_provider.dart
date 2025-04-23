@@ -33,11 +33,9 @@ class RegisterProvider with ChangeNotifier {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
     try {
-      // Check if the username (email in this case) already exists
-      List<Map<String, dynamic>> existingUsers = await _db.getUserByUsername(
-        email,
-      );
-      if (existingUsers.isNotEmpty) {
+      // Check if the email already exists
+      final existingUser = await _db.getUserByEmail(email);
+      if (existingUser != null) {
         setErrorMessage('Email ini sudah terdaftar.');
         return;
       }

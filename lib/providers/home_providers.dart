@@ -43,8 +43,8 @@ class HomeProvider with ChangeNotifier {
     final userId = authProvider.loggedInUserId;
 
     if (userId == null) {
-      Navigator.pushReplacementNamed(context, '/login');
       setLoading(false);
+      setErrorMessage('Pengguna tidak terautentikasi.');
       return;
     }
 
@@ -57,9 +57,7 @@ class HomeProvider with ChangeNotifier {
       }
     } catch (e) {
       setErrorMessage('Gagal memuat profil: $e');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Gagal memuat profil: $e')));
+      // Tidak perlu menampilkan SnackBar di sini
     } finally {
       setLoading(false);
     }
@@ -101,7 +99,7 @@ class HomeProvider with ChangeNotifier {
 
   Future<void> removeToken(BuildContext context) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    await authProvider.logout();
-    Navigator.pushReplacementNamed(context, '/login');
+    await authProvider.logout(context); // Tambahkan context sebagai argumen
+    // Tidak perlu navigasi di sini, biarkan widget yang menanganinya jika perlu
   }
 }
