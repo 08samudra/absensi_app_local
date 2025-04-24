@@ -5,12 +5,13 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:geocoding/geocoding.dart'; // Import geocoding package
 
 class AbsenProvider with ChangeNotifier {
   final LocalDatabase _db = LocalDatabase();
   GoogleMapController? _mapController;
   LatLng? _currentLocation;
-  String _status = 'masuk';
+  String _status = 'Masuk';
   String _alasanIzin = '';
   bool _isLoading = false;
   String _message = '';
@@ -78,6 +79,25 @@ class AbsenProvider with ChangeNotifier {
     }
   }
 
+  Future<String?> _getAddressFromLatLng(LatLng latLng) async {
+    try {
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        latLng.latitude,
+        latLng.longitude,
+      );
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks.first;
+        // Anda bisa menggabungkan beberapa bagian alamat sesuai kebutuhan
+        return '${place.street}, ${place.subLocality}, ${place.locality}, ${place.subAdministrativeArea}, ${place.administrativeArea}, ${place.postalCode}, ${place.country}';
+      }
+      return null;
+    } catch (e) {
+      setMessage('Gagal mendapatkan nama lokasi: $e');
+      notifyListeners();
+      return null;
+    }
+  }
+
   Future<void> checkIn(BuildContext context) async {
     setLoading(true);
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -99,24 +119,40 @@ class AbsenProvider with ChangeNotifier {
       }
     }
 
-    try {
-      int id = await _db.insertAbsen({
-        'user_id': userId,
-        'check_in': formattedTime,
-        'check_out': null,
-        'latitude_in': _currentLocation!.latitude,
-        'longitude_in': _currentLocation!.longitude,
-        'latitude_out': null,
-        'longitude_out': null,
-        'status': _status,
-        'alasan_izin': _status == 'izin' ? _alasanIzin : null,
-      });
+    String? locationName = await _getAddressFromLatLng(_currentLocation!);
 
-      if (id > 0) {
-        setMessage('Berhasil melakukan absen masuk pada $formattedTime');
-        _isCheckOutEnabled = true; // Aktifkan tombol check-out setelah check-in
+    try {
+      // Periksa apakah sudah ada absen masuk hari ini yang belum pulang
+      List<Map<String, dynamic>> todayUncheckedIn = await _db
+          .getTodayUncheckedOutAbsen(userId);
+
+      if (todayUncheckedIn.isNotEmpty) {
+        setMessage(
+          'Anda sudah melakukan absen masuk hari ini dan belum melakukan absen pulang.',
+        );
       } else {
-        setMessage('Gagal melakukan absen masuk.');
+        int id = await _db.insertAbsen({
+          'user_id': userId,
+          'check_in': formattedTime,
+          'check_out': null,
+          'latitude_in': _currentLocation!.latitude,
+          'longitude_in': _currentLocation!.longitude,
+          'latitude_out': null,
+          'longitude_out': null,
+          'status': _status,
+          'alasan_izin': _status == 'izin' ? _alasanIzin : null,
+          'location_in_name': locationName, // Simpan nama lokasi
+        });
+
+        if (id > 0) {
+          setMessage(
+            'Berhasil melakukan absen masuk pada $formattedTime di $locationName',
+          );
+          _isCheckOutEnabled =
+              true; // Aktifkan tombol check-out setelah check-in
+        } else {
+          setMessage('Gagal melakukan absen masuk.');
+        }
       }
     } catch (e) {
       setMessage('Terjadi kesalahan saat absen masuk: $e');

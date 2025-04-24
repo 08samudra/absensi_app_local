@@ -19,7 +19,25 @@ class LocalDatabase {
 
   Future<Database> _initDatabase() async {
     final path = await fullPath;
-    return await openDatabase(path, version: 1, onCreate: _createDatabase);
+    return await openDatabase(
+      path,
+      version: 2,
+      onUpgrade: _upgradeDatabase,
+      onCreate: _createDatabase,
+    );
+  }
+
+  Future<void> _upgradeDatabase(
+    Database db,
+    int oldVersion,
+    int newVersion,
+  ) async {
+    if (oldVersion < 2) {
+      await db.execute(
+        'ALTER TABLE attendance ADD COLUMN location_in_name TEXT',
+      );
+    }
+    // Tambahkan upgrade lain jika ada versi database selanjutnya
   }
 
   Future<void> _createDatabase(Database db, int version) async {
@@ -52,6 +70,7 @@ class LocalDatabase {
         status TEXT NOT NULL,
         alasan_izin TEXT,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        location_in_name TEXT, -- Tambahkan kolom ini
         FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
       )
     ''');
@@ -88,16 +107,6 @@ class LocalDatabase {
     }
     return userId;
   }
-
-  // Fungsi untuk mendapatkan user berdasarkan email (untuk login) - DUPLIKAT, HAPUS SAJA
-  // Future<List<Map<String, dynamic>>> getUserByUsername(String username) async {
-  //   final db = await database;
-  //   return await db.query(
-  //     'users',
-  //     where: 'email = ?', // Asumsi username adalah email
-  //     whereArgs: [username],
-  //   );
-  // }
 
   // Fungsi untuk mendapatkan profil pengguna
   Future<Map<String, dynamic>?> getProfile(int userId) async {
@@ -185,5 +194,11 @@ class LocalDatabase {
       whereArgs: [userId, today],
     );
     return result;
+  }
+
+  // Fungsi untuk menghapus data absensi berdasarkan ID
+  Future<int> deleteAbsen(int id) async {
+    final db = await database;
+    return await db.delete('attendance', where: 'id = ?', whereArgs: [id]);
   }
 }

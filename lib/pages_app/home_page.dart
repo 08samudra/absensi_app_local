@@ -43,7 +43,13 @@ class _HomePageState extends State<HomePage> {
     final formattedDate = DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(now);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Dashboard Absensi')),
+      appBar: AppBar(
+        title: Text(
+          homeProvider.profileData.isNotEmpty
+              ? 'Hallo ${homeProvider.profileData['name'] ?? 'Pengguna'}'
+              : 'Hallo Pengguna',
+        ),
+      ),
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
@@ -130,7 +136,7 @@ class _HomePageState extends State<HomePage> {
                       return GoogleMap(
                         initialCameraPosition: CameraPosition(
                           target: snapshot.data!,
-                          zoom: 15,
+                          zoom: 17,
                         ),
                         markers: {
                           Marker(
@@ -165,7 +171,7 @@ class _HomePageState extends State<HomePage> {
                           : () => absenProvider.checkIn(context),
                   child:
                       absenProvider.isLoading
-                          ? const CircularProgressIndicator()
+                          ? const CircularProgressIndicator(strokeWidth: 3.0)
                           : const Text('Absen Masuk'),
                 ),
                 ElevatedButton(
@@ -176,7 +182,7 @@ class _HomePageState extends State<HomePage> {
                           : () => absenProvider.checkOutProcess(context),
                   child:
                       absenProvider.isCheckOutLoading
-                          ? const CircularProgressIndicator()
+                          ? const CircularProgressIndicator(strokeWidth: 3.0)
                           : const Text('Absen Pulang'),
                 ),
               ],
