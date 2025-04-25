@@ -1,11 +1,11 @@
-import 'package:absensi_app/locals/local_database.dart';
+import 'package:absensi_app/db/data_access_object/attendace_dao.dart';
 import 'package:absensi_app/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 
 class RiwayatAbsenProvider with ChangeNotifier {
-  final LocalDatabase _db = LocalDatabase();
+  final AttendanceDao _attendanceDao = AttendanceDao(); // Gunakan AttendanceDao
   List<Map<String, dynamic>> _historyAbsens = [];
   bool _isLoading = false;
   String _errorMessage = '';
@@ -51,7 +51,8 @@ class RiwayatAbsenProvider with ChangeNotifier {
     }
 
     try {
-      List<Map<String, dynamic>> absens = await _db.getAbsenHistory(
+      List<Map<String, dynamic>> absens = await _attendanceDao.getAbsenHistory(
+        // Gunakan AttendanceDao
         userId,
         startDate: startDate,
         endDate: endDate,
@@ -76,7 +77,9 @@ class RiwayatAbsenProvider with ChangeNotifier {
     setLoading(true);
     setErrorMessage('');
     try {
-      final int deletedRows = await _db.deleteAbsen(absenId);
+      final int deletedRows = await _attendanceDao.deleteAbsen(
+        absenId,
+      ); // Gunakan AttendanceDao
       if (deletedRows > 0) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Riwayat absen berhasil dihapus.')),

@@ -1,26 +1,24 @@
-import 'package:absensi_app/locals/local_database.dart';
-// import 'package:absensi_app/pages_app/absent_page.dart';
-import 'package:absensi_app/pages_app/edit_profile_page.dart';
-import 'package:absensi_app/pages_app/home_page.dart';
-import 'package:absensi_app/pages_app/login_page.dart';
-import 'package:absensi_app/pages_app/profil_page.dart';
-import 'package:absensi_app/pages_app/register_page.dart';
-import 'package:absensi_app/pages_app/riwayat_absen_page.dart';
-import 'package:absensi_app/pages_app/splash_page.dart';
+import 'package:absensi_app/db/db_helper.dart';
+// import 'package:absensi_app/db/local_db.dart';
+import 'package:absensi_app/pages/edit_profile_page.dart';
+import 'package:absensi_app/pages/home_page.dart';
+import 'package:absensi_app/pages/login_page.dart';
+import 'package:absensi_app/pages/profil_page.dart';
+import 'package:absensi_app/pages/register_page.dart';
+import 'package:absensi_app/pages/riwayat_absen_page.dart';
+import 'package:absensi_app/pages/splash_page.dart';
 import 'package:absensi_app/providers/absen_provider.dart';
 import 'package:absensi_app/providers/auth_provider.dart';
-import 'package:absensi_app/providers/home_providers.dart';
-import 'package:absensi_app/providers/register_provider.dart';
+import 'package:absensi_app/providers/home_provider.dart';
 import 'package:absensi_app/providers/riwayat_absen_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-// import 'package:intl/intl.dart'; // Import intl
 import 'package:intl/date_symbol_data_local.dart'; // Import untuk inisialisasi locale data
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final LocalDatabase localDatabase = LocalDatabase();
+  final DatabaseHelper localDatabase = DatabaseHelper();
   await localDatabase.database;
 
   final SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -38,7 +36,6 @@ void main() async {
               return authProvider;
             },
           ),
-          ChangeNotifierProvider(create: (context) => RegisterProvider()),
           ChangeNotifierProvider(create: (context) => HomeProvider()),
           ChangeNotifierProvider(create: (context) => AbsenProvider()),
           ChangeNotifierProvider(create: (context) => RiwayatAbsenProvider()),
@@ -54,6 +51,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
     return MaterialApp(
       title: 'Absensi App',
       theme: ThemeData(
@@ -61,7 +59,7 @@ class MyApp extends StatelessWidget {
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       debugShowCheckedModeBanner: false,
-      initialRoute: '/splash',
+      initialRoute: authProvider.isLoggedIn ? '/home' : '/splash',
       routes: {
         '/splash': (context) => const SplashPage(),
         '/login': (context) => LoginPage(),
@@ -69,7 +67,6 @@ class MyApp extends StatelessWidget {
         '/home': (context) => HomePage(),
         '/profile': (context) => const ProfilePage(),
         '/edit_profile': (context) => EditProfilePage(),
-        // '/absent': (context) => AbsentPage(),
         '/history_absen': (context) => RiwayatAbsenPage(),
       },
     );

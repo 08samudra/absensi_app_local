@@ -1,4 +1,4 @@
-import 'package:absensi_app/locals/local_database.dart';
+import 'package:absensi_app/db/data_access_object/attendace_dao.dart';
 import 'package:absensi_app/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -8,7 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:geocoding/geocoding.dart'; // Import geocoding package
 
 class AbsenProvider with ChangeNotifier {
-  final LocalDatabase _db = LocalDatabase();
+  final AttendanceDao _attendanceDao = AttendanceDao(); // Gunakan AttendanceDao
   GoogleMapController? _mapController;
   LatLng? _currentLocation;
   String _status = 'Masuk';
@@ -122,8 +122,8 @@ class AbsenProvider with ChangeNotifier {
     String? locationName = await _getAddressFromLatLng(_currentLocation!);
 
     try {
-      // Periksa apakah sudah ada absen masuk hari ini yang belum pulang
-      List<Map<String, dynamic>> todayUncheckedIn = await _db
+      // Periksa apakah sudah ada absen masuk hari ini yang belum pulang menggunakan AttendanceDao
+      List<Map<String, dynamic>> todayUncheckedIn = await _attendanceDao
           .getTodayUncheckedOutAbsen(userId);
 
       if (todayUncheckedIn.isNotEmpty) {
@@ -131,7 +131,8 @@ class AbsenProvider with ChangeNotifier {
           'Anda sudah melakukan absen masuk hari ini dan belum melakukan absen pulang.',
         );
       } else {
-        int id = await _db.insertAbsen({
+        int id = await _attendanceDao.insertAbsen({
+          // Gunakan AttendanceDao
           'user_id': userId,
           'check_in': formattedTime,
           'check_out': null,
@@ -183,12 +184,13 @@ class AbsenProvider with ChangeNotifier {
     }
 
     try {
-      // Cari absensi hari ini yang belum check-out
-      List<Map<String, dynamic>> todayAbsen = await _db
+      // Cari absensi hari ini yang belum check-out menggunakan AttendanceDao
+      List<Map<String, dynamic>> todayAbsen = await _attendanceDao
           .getTodayUncheckedOutAbsen(userId);
       if (todayAbsen.isNotEmpty) {
         int absenId = todayAbsen.first['id'];
-        int rowsAffected = await _db.updateAbsen({
+        int rowsAffected = await _attendanceDao.updateAbsen({
+          // Gunakan AttendanceDao
           'id': absenId,
           'check_out': formattedTime,
           'latitude_out': _currentLocation!.latitude,
@@ -214,12 +216,12 @@ class AbsenProvider with ChangeNotifier {
     }
   }
 
-  // Fungsi untuk memeriksa apakah pengguna sudah check-in hari ini
+  // Fungsi untuk memeriksa apakah pengguna sudah check-in hari ini menggunakan AttendanceDao
   Future<void> checkIfCheckedIn(BuildContext context) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final userId = authProvider.loggedInUserId;
     if (userId != null) {
-      List<Map<String, dynamic>> todayAbsen = await _db
+      List<Map<String, dynamic>> todayAbsen = await _attendanceDao
           .getTodayUncheckedOutAbsen(userId);
       _isCheckOutEnabled = todayAbsen.isNotEmpty;
       notifyListeners();

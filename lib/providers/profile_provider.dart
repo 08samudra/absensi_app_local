@@ -1,10 +1,10 @@
-import 'package:absensi_app/locals/local_database.dart';
+import 'package:absensi_app/db/data_access_object/user_dao.dart';
 import 'package:absensi_app/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 class ProfileProvider with ChangeNotifier {
-  final LocalDatabase _db = LocalDatabase();
+  final UserDao _userDao = UserDao(); // Gunakan UserDao
   Map<String, dynamic> _profileData = {};
   bool _isLoading = true;
   String _errorMessage = '';
@@ -42,7 +42,7 @@ class ProfileProvider with ChangeNotifier {
     }
 
     try {
-      final profile = await _db.getProfile(userId);
+      final profile = await _userDao.getProfile(userId); // Gunakan UserDao
       if (profile != null) {
         setProfileData(profile);
       } else {
@@ -69,7 +69,10 @@ class ProfileProvider with ChangeNotifier {
     }
 
     try {
-      await _db.updateProfile({'user_id': userId, 'name': name});
+      await _userDao.updateProfile({
+        'user_id': userId,
+        'name': name,
+      }); // Gunakan UserDao
       // Muat ulang profil setelah pembaruan
       fetchProfile(context);
     } catch (e) {

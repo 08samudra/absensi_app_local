@@ -1,10 +1,11 @@
-import 'package:absensi_app/locals/local_database.dart'; // Pastikan path ini benar
+import 'package:absensi_app/db/data_access_object/user_dao.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:bcrypt/bcrypt.dart';
 
 class AuthProvider with ChangeNotifier {
-  final LocalDatabase _db = LocalDatabase();
+  final UserDao _userDao = UserDao(); // Gunakan UserDao
+
   bool _isLoading = false;
   String? _errorMessage = '';
   int? _loggedInUserId;
@@ -12,6 +13,7 @@ class AuthProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   int? get loggedInUserId => _loggedInUserId;
+  bool get isLoggedIn => _loggedInUserId != null;
 
   void setInitialLoggedInUserId(int? userId) {
     _loggedInUserId = userId;
@@ -20,6 +22,16 @@ class AuthProvider with ChangeNotifier {
 
   void clearErrorMessage() {
     _errorMessage = null;
+    notifyListeners();
+  }
+
+  void setLoading(bool value) {
+    _isLoading = value;
+    notifyListeners();
+  }
+
+  void setErrorMessage(String value) {
+    _errorMessage = value;
     notifyListeners();
   }
 
@@ -33,7 +45,7 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final user = await _db.getUserByEmail(email);
+      final user = await _userDao.getUserByEmail(email); // Gunakan UserDao
       if (user != null) {
         final String storedPassword = user['password'];
         if (BCrypt.checkpw(password, storedPassword)) {
@@ -60,18 +72,41 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  Future<bool> register(String name, String email, String password) async {
-    _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
+  Future<bool> register(
+    BuildContext context,
+    String name,
+    String email,
+    String password,
+  ) async {
+    setLoading(true);
+    setErrorMessage('');
 
     try {
+      // Check if the email already exists
+      final existingUser = await _userDao.getUserByEmail(
+        email,
+      ); // Gunakan UserDao
+      if (existingUser != null) {
+        setErrorMessage('Email ini sudah terdaftar.');
+        return false;
+      }
+
       // Hash the password
       final salt = BCrypt.gensalt();
       final String hashedPassword = BCrypt.hashpw(password, salt);
 
-      int userId = await _db.register(name, email, hashedPassword);
+      // Insert the new user into the local database using UserDao
+      int userId = await _userDao.register(
+        name,
+        email,
+        hashedPassword,
+      ); // Gunakan UserDao
+
       if (userId > 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Registrasi berhasil! Silakan login.')),
+        );
+        Navigator.pop(context); // Kembali ke halaman login
         _isLoading = false;
         notifyListeners();
         return true;

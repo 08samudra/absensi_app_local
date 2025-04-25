@@ -1,11 +1,11 @@
-import 'package:absensi_app/locals/local_database.dart';
-import 'package:absensi_app/pages_app/profil_page.dart';
+import 'package:absensi_app/db/data_access_object/user_dao.dart';
+import 'package:absensi_app/pages/profil_page.dart';
 import 'package:absensi_app/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 class EditProfileProvider with ChangeNotifier {
-  final LocalDatabase _db = LocalDatabase();
+  final UserDao _userDao = UserDao(); // Gunakan UserDao
   bool _isLoading = false;
   String _message = '';
 
@@ -35,7 +35,8 @@ class EditProfileProvider with ChangeNotifier {
     }
 
     try {
-      int updatedRows = await _db.updateProfile({
+      int updatedRows = await _userDao.updateProfile({
+        // Gunakan UserDao
         'user_id': userId,
         'name': name,
       });

@@ -1,5 +1,7 @@
+import 'package:absensi_app/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // Anda mungkin tidak perlu ini lagi
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -12,22 +14,21 @@ class _SplashPageState extends State<SplashPage> {
   @override
   void initState() {
     super.initState();
-    _checkLoginStatus();
+    _checkLoginStatus(context);
   }
 
-  Future<void> _checkLoginStatus() async {
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    final int? userId = prefs.getInt('userId');
-
+  Future<void> _checkLoginStatus(BuildContext context) async {
     await Future.delayed(const Duration(seconds: 2));
 
-    if (userId != null) {
-      // Jika userId ada, arahkan ke halaman home
-      print('SplashPage: User ID ditemukan, navigasi ke /home');
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+    if (authProvider.isLoggedIn) {
+      // Jika sudah login, arahkan ke halaman home
+      print('SplashPage: User sudah login, navigasi ke /home');
       Navigator.pushReplacementNamed(context, '/home');
     } else {
-      // Jika userId tidak ada, arahkan ke halaman login
-      print('SplashPage: User ID tidak ditemukan, navigasi ke /login');
+      // Jika belum login, arahkan ke halaman login
+      print('SplashPage: User belum login, navigasi ke /login');
       Navigator.pushReplacementNamed(context, '/login');
     }
   }
@@ -48,7 +49,7 @@ class _SplashPageState extends State<SplashPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
                 const Text(
-                  'Selamat Datang di Aplikasi Absen',
+                  'AbsentApp',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -56,7 +57,7 @@ class _SplashPageState extends State<SplashPage> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                // const CircularProgressIndicator(),
+                const CircularProgressIndicator(), // Tampilkan indikator loading
               ],
             ),
           ),

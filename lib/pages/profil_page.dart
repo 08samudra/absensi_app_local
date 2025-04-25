@@ -1,5 +1,5 @@
-import 'package:absensi_app/pages_app/edit_profile_page.dart';
-import 'package:absensi_app/providers/home_providers.dart';
+import 'package:absensi_app/pages/edit_profile_page.dart';
+import 'package:absensi_app/providers/home_provider.dart';
 import 'package:absensi_app/providers/riwayat_absen_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';

@@ -1,4 +1,4 @@
-import 'package:absensi_app/providers/register_provider.dart';
+import 'package:absensi_app/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -39,8 +39,8 @@ class _RegisterPageState extends State<RegisterPage> {
                   padding: const EdgeInsets.all(16.0),
                   child: Form(
                     key: _formKey,
-                    child: Consumer<RegisterProvider>(
-                      builder: (context, registerProvider, child) {
+                    child: Consumer<AuthProvider>(
+                      builder: (context, authProvider, child) {
                         return Column(
                           mainAxisSize: MainAxisSize.min,
                           children: <Widget>[
@@ -98,11 +98,11 @@ class _RegisterPageState extends State<RegisterPage> {
                             SizedBox(height: 10),
                             ElevatedButton(
                               onPressed:
-                                  registerProvider.isLoading
+                                  authProvider.isLoading
                                       ? null
                                       : () {
                                         if (_formKey.currentState!.validate()) {
-                                          registerProvider.register(
+                                          authProvider.register(
                                             context,
                                             _nameController.text,
                                             _emailController.text,
@@ -121,15 +121,16 @@ class _RegisterPageState extends State<RegisterPage> {
                                 ),
                               ),
                               child:
-                                  registerProvider.isLoading
+                                  authProvider.isLoading
                                       ? CircularProgressIndicator()
                                       : Text('Registrasi'),
                             ),
-                            if (registerProvider.errorMessage.isNotEmpty)
+                            if (authProvider.errorMessage != null &&
+                                authProvider.errorMessage!.isNotEmpty)
                               Padding(
                                 padding: const EdgeInsets.only(top: 8.0),
                                 child: Text(
-                                  registerProvider.errorMessage,
+                                  authProvider.errorMessage!,
                                   style: TextStyle(color: Colors.red),
                                 ),
                               ),

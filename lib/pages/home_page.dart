@@ -1,6 +1,6 @@
 import 'package:absensi_app/providers/absen_provider.dart'; // Pastikan path ini benar
 import 'package:absensi_app/providers/auth_provider.dart';
-import 'package:absensi_app/providers/home_providers.dart';
+import 'package:absensi_app/providers/home_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
