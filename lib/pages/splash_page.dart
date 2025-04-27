@@ -1,4 +1,4 @@
-import 'package:absensi_app/providers/auth_provider.dart';
+import 'package:absensi_app/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart'; // Anda mungkin tidak perlu ini lagi

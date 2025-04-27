@@ -1,4 +1,4 @@
-import 'package:absensi_app/providers/auth_provider.dart'; // Pastikan path ini benar
+import 'package:absensi_app/services/auth_service.dart'; // Pastikan path ini benar
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 

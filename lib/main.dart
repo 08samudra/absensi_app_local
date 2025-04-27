@@ -1,5 +1,4 @@
 import 'package:absensi_app/db/db_helper.dart';
-// import 'package:absensi_app/db/local_db.dart';
 import 'package:absensi_app/pages/edit_profile_page.dart';
 import 'package:absensi_app/pages/home_page.dart';
 import 'package:absensi_app/pages/login_page.dart';
@@ -8,13 +7,14 @@ import 'package:absensi_app/pages/register_page.dart';
 import 'package:absensi_app/pages/riwayat_absen_page.dart';
 import 'package:absensi_app/pages/splash_page.dart';
 import 'package:absensi_app/providers/absen_provider.dart';
-import 'package:absensi_app/providers/auth_provider.dart';
+import 'package:absensi_app/services/auth_service.dart';
 import 'package:absensi_app/providers/home_provider.dart';
 import 'package:absensi_app/providers/riwayat_absen_provider.dart';
+import 'package:absensi_app/services/map_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:intl/date_symbol_data_local.dart'; // Import untuk inisialisasi locale data
+import 'package:intl/date_symbol_data_local.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,7 +24,6 @@ void main() async {
   final SharedPreferences prefs = await SharedPreferences.getInstance();
   final int? initialUserId = prefs.getInt('userId');
 
-  // Inisialisasi data locale untuk Bahasa Indonesia
   await initializeDateFormatting('id_ID', null).then(
     (_) => runApp(
       MultiProvider(
@@ -39,6 +38,9 @@ void main() async {
           ChangeNotifierProvider(create: (context) => HomeProvider()),
           ChangeNotifierProvider(create: (context) => AbsenProvider()),
           ChangeNotifierProvider(create: (context) => RiwayatAbsenProvider()),
+          ChangeNotifierProvider(
+            create: (context) => MapService(),
+          ), // Tambahkan MapProvider di sini
         ],
         child: const MyApp(),
       ),

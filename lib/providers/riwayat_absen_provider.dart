@@ -1,5 +1,5 @@
 import 'package:absensi_app/db/data_access_object/attendace_dao.dart';
-import 'package:absensi_app/providers/auth_provider.dart';
+import 'package:absensi_app/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -11,12 +11,14 @@ class RiwayatAbsenProvider with ChangeNotifier {
   String _errorMessage = '';
   int _totalAbsen = 0;
   int _totalIzin = 0;
+  DateTime? _selectedDate; // Untuk menyimpan tanggal yang dipilih
 
   List<Map<String, dynamic>> get historyAbsens => _historyAbsens;
   bool get isLoading => _isLoading;
   String get errorMessage => _errorMessage;
   int get totalAbsen => _totalAbsen;
   int get totalIzin => _totalIzin;
+  DateTime? get selectedDate => _selectedDate;
 
   void setLoading(bool value) {
     _isLoading = value;
@@ -34,13 +36,18 @@ class RiwayatAbsenProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  void setSelectedDate(DateTime? date) {
+    _selectedDate = date;
+    notifyListeners();
+  }
+
   Future<void> getHistoryAbsens({
     BuildContext? context,
     String? startDate,
     String? endDate,
   }) async {
     setLoading(true);
-    setErrorMessage(''); // Reset error message saat memulai loading
+    setErrorMessage('');
     final authProvider = Provider.of<AuthProvider>(context!, listen: false);
     final userId = authProvider.loggedInUserId;
 
@@ -52,7 +59,6 @@ class RiwayatAbsenProvider with ChangeNotifier {
 
     try {
       List<Map<String, dynamic>> absens = await _attendanceDao.getAbsenHistory(
-        // Gunakan AttendanceDao
         userId,
         startDate: startDate,
         endDate: endDate,
@@ -73,18 +79,14 @@ class RiwayatAbsenProvider with ChangeNotifier {
     }
   }
 
-  Future<void> deleteHistoryAbsen(BuildContext context, int absenId) async {
+  Future<bool> deleteHistoryAbsen(BuildContext context, int absenId) async {
     setLoading(true);
     setErrorMessage('');
     try {
-      final int deletedRows = await _attendanceDao.deleteAbsen(
-        absenId,
-      ); // Gunakan AttendanceDao
+      final int deletedRows = await _attendanceDao.deleteAbsen(absenId);
+
       if (deletedRows > 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Riwayat absen berhasil dihapus.')),
-        );
-        // Refresh riwayat absen setelah penghapusan
+        // Refresh riwayat setelah hapus
         await getHistoryAbsens(
           context: context,
           startDate:
@@ -96,22 +98,16 @@ class RiwayatAbsenProvider with ChangeNotifier {
                   ? DateFormat('yyyy-MM-dd').format(_selectedDate!)
                   : null,
         );
+        return true; // << KEMBALIKAN TRUE kalau berhasil
       } else {
         setErrorMessage('Gagal menghapus riwayat absen.');
+        return false; // << KEMBALIKAN FALSE kalau gagal
       }
     } catch (e) {
       setErrorMessage('Terjadi kesalahan saat menghapus riwayat absen: $e');
+      return false;
     } finally {
       setLoading(false);
     }
-  }
-
-  // Tambahkan variabel untuk menyimpan tanggal yang dipilih (jika belum ada)
-  DateTime? _selectedDate;
-
-  // Fungsi untuk memperbarui tanggal yang dipilih
-  void setSelectedDate(DateTime? date) {
-    _selectedDate = date;
-    notifyListeners();
   }
 }

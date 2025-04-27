@@ -1,25 +1,25 @@
 import 'package:absensi_app/db/data_access_object/attendace_dao.dart';
-import 'package:absensi_app/providers/auth_provider.dart';
+// import 'package:absensi_app/providers/auth_provider.dart';
+// import 'package:absensi_app/providers/map_provider.dart'; // Import MapProvider
+import 'package:absensi_app/services/auth_service.dart';
+import 'package:absensi_app/services/map_service.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart'; // Import untuk LatLng
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import 'package:geocoding/geocoding.dart'; // Import geocoding package
+import 'package:geocoding/geocoding.dart';
 
 class AbsenProvider with ChangeNotifier {
-  final AttendanceDao _attendanceDao = AttendanceDao(); // Gunakan AttendanceDao
-  GoogleMapController? _mapController;
-  LatLng? _currentLocation;
+  final AttendanceDao _attendanceDao = AttendanceDao();
   String _status = 'Masuk';
   String _alasanIzin = '';
   bool _isLoading = false;
   String _message = '';
   bool _isCheckOutLoading = false;
   String _checkOutMessage = '';
-  bool _isCheckOutEnabled = false; // Kontrol tombol check-out
+  bool _isCheckOutEnabled = false;
 
-  LatLng? get currentLocation => _currentLocation;
   String get status => _status;
   String get alasanIzin => _alasanIzin;
   bool get isLoading => _isLoading;
@@ -27,11 +27,6 @@ class AbsenProvider with ChangeNotifier {
   bool get isCheckOutLoading => _isCheckOutLoading;
   String get checkOutMessage => _checkOutMessage;
   bool get isCheckOutEnabled => _isCheckOutEnabled;
-
-  void setMapController(GoogleMapController controller) {
-    _mapController = controller;
-    notifyListeners();
-  }
 
   void setStatus(String value) {
     _status = value;
@@ -65,20 +60,6 @@ class AbsenProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<LatLng?> getCurrentLocation() async {
-    try {
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-      _currentLocation = LatLng(position.latitude, position.longitude);
-      return _currentLocation;
-    } catch (e) {
-      setMessage('Gagal mendapatkan lokasi: $e');
-      notifyListeners();
-      return null;
-    }
-  }
-
   Future<String?> _getAddressFromLatLng(LatLng latLng) async {
     try {
       List<Placemark> placemarks = await placemarkFromCoordinates(
@@ -87,13 +68,11 @@ class AbsenProvider with ChangeNotifier {
       );
       if (placemarks.isNotEmpty) {
         Placemark place = placemarks.first;
-        // Anda bisa menggabungkan beberapa bagian alamat sesuai kebutuhan
         return '${place.street}, ${place.subLocality}, ${place.locality}, ${place.subAdministrativeArea}, ${place.administrativeArea}, ${place.postalCode}, ${place.country}';
       }
       return null;
     } catch (e) {
       setMessage('Gagal mendapatkan nama lokasi: $e');
-      notifyListeners();
       return null;
     }
   }
@@ -101,9 +80,11 @@ class AbsenProvider with ChangeNotifier {
   Future<void> checkIn(BuildContext context) async {
     setLoading(true);
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final mapProvider = Provider.of<MapService>(context, listen: false);
     final userId = authProvider.loggedInUserId;
     final now = DateTime.now();
     final formattedTime = DateFormat('yyyy-MM-dd HH:mm:ss').format(now);
+    final currentLocation = mapProvider.currentLatLng;
 
     if (userId == null) {
       setMessage('Pengguna tidak terautentikasi.');
@@ -111,18 +92,15 @@ class AbsenProvider with ChangeNotifier {
       return;
     }
 
-    if (_currentLocation == null) {
-      await getCurrentLocation();
-      if (_currentLocation == null) {
-        setLoading(false);
-        return;
-      }
+    if (currentLocation == null) {
+      setMessage('Lokasi belum tersedia. Harap coba lagi.');
+      setLoading(false);
+      return;
     }
 
-    String? locationName = await _getAddressFromLatLng(_currentLocation!);
+    String? locationName = await _getAddressFromLatLng(currentLocation);
 
     try {
-      // Periksa apakah sudah ada absen masuk hari ini yang belum pulang menggunakan AttendanceDao
       List<Map<String, dynamic>> todayUncheckedIn = await _attendanceDao
           .getTodayUncheckedOutAbsen(userId);
 
@@ -132,25 +110,23 @@ class AbsenProvider with ChangeNotifier {
         );
       } else {
         int id = await _attendanceDao.insertAbsen({
-          // Gunakan AttendanceDao
           'user_id': userId,
           'check_in': formattedTime,
           'check_out': null,
-          'latitude_in': _currentLocation!.latitude,
-          'longitude_in': _currentLocation!.longitude,
+          'latitude_in': currentLocation.latitude,
+          'longitude_in': currentLocation.longitude,
           'latitude_out': null,
           'longitude_out': null,
           'status': _status,
           'alasan_izin': _status == 'izin' ? _alasanIzin : null,
-          'location_in_name': locationName, // Simpan nama lokasi
+          'location_in_name': locationName,
         });
 
         if (id > 0) {
           setMessage(
             'Berhasil melakukan absen masuk pada $formattedTime di $locationName',
           );
-          _isCheckOutEnabled =
-              true; // Aktifkan tombol check-out setelah check-in
+          _isCheckOutEnabled = true;
         } else {
           setMessage('Gagal melakukan absen masuk.');
         }
@@ -165,9 +141,11 @@ class AbsenProvider with ChangeNotifier {
   Future<void> checkOutProcess(BuildContext context) async {
     setCheckOutLoading(true);
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final mapProvider = Provider.of<MapService>(context, listen: false);
     final userId = authProvider.loggedInUserId;
     final now = DateTime.now();
     final formattedTime = DateFormat('yyyy-MM-dd HH:mm:ss').format(now);
+    final currentLocation = mapProvider.currentLatLng;
 
     if (userId == null) {
       setCheckOutMessage('Pengguna tidak terautentikasi.');
@@ -175,34 +153,29 @@ class AbsenProvider with ChangeNotifier {
       return;
     }
 
-    if (_currentLocation == null) {
-      await getCurrentLocation();
-      if (_currentLocation == null) {
-        setCheckOutLoading(false);
-        return;
-      }
+    if (currentLocation == null) {
+      setCheckOutMessage('Lokasi belum tersedia. Harap coba lagi.');
+      setCheckOutLoading(false);
+      return;
     }
 
     try {
-      // Cari absensi hari ini yang belum check-out menggunakan AttendanceDao
       List<Map<String, dynamic>> todayAbsen = await _attendanceDao
           .getTodayUncheckedOutAbsen(userId);
       if (todayAbsen.isNotEmpty) {
         int absenId = todayAbsen.first['id'];
         int rowsAffected = await _attendanceDao.updateAbsen({
-          // Gunakan AttendanceDao
           'id': absenId,
           'check_out': formattedTime,
-          'latitude_out': _currentLocation!.latitude,
-          'longitude_out': _currentLocation!.longitude,
+          'latitude_out': currentLocation.latitude,
+          'longitude_out': currentLocation.longitude,
         });
 
         if (rowsAffected > 0) {
           setCheckOutMessage(
             'Berhasil melakukan absen keluar pada $formattedTime',
           );
-          _isCheckOutEnabled =
-              false; // Nonaktifkan tombol check-out setelah check-out
+          _isCheckOutEnabled = false;
         } else {
           setCheckOutMessage('Gagal melakukan absen keluar.');
         }
@@ -216,7 +189,6 @@ class AbsenProvider with ChangeNotifier {
     }
   }
 
-  // Fungsi untuk memeriksa apakah pengguna sudah check-in hari ini menggunakan AttendanceDao
   Future<void> checkIfCheckedIn(BuildContext context) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final userId = authProvider.loggedInUserId;

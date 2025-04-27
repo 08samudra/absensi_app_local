@@ -1,6 +1,7 @@
-import 'package:absensi_app/providers/absen_provider.dart'; // Pastikan path ini benar
-import 'package:absensi_app/providers/auth_provider.dart';
+import 'package:absensi_app/widgets/home_drawer.dart';
+import 'package:absensi_app/providers/absen_provider.dart';
 import 'package:absensi_app/providers/home_provider.dart';
+import 'package:absensi_app/services/map_service.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
@@ -10,37 +11,45 @@ class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
   @override
-  _HomePageState createState() => _HomePageState();
+  State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  Future<LatLng?>? _locationFuture;
+  GoogleMapController? _mapController;
 
   @override
   void initState() {
     super.initState();
-    _locationFuture =
-        Provider.of<AbsenProvider>(context, listen: false).getCurrentLocation();
-    // Periksa status check-in saat halaman dimuat
+    Provider.of<MapService>(context, listen: false).getCurrentLocation();
     Provider.of<AbsenProvider>(
       context,
       listen: false,
     ).checkIfCheckedIn(context);
-    // Ambil data profil saat halaman dimuat
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<HomeProvider>(context, listen: false).fetchProfile(context);
     });
+  }
+
+  void _updateLocation() async {
+    await Provider.of<MapService>(context, listen: false).getCurrentLocation();
+    final mapProvider = Provider.of<MapService>(context, listen: false);
+    if (mapProvider.currentLatLng != null && _mapController != null) {
+      _mapController!.animateCamera(
+        CameraUpdate.newLatLng(mapProvider.currentLatLng!),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final homeProvider = Provider.of<HomeProvider>(context);
     final absenProvider = Provider.of<AbsenProvider>(context);
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final mapProvider = Provider.of<MapService>(context);
 
-    // Format tanggal
-    final now = DateTime.now();
-    final formattedDate = DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(now);
+    final formattedDate = DateFormat(
+      'EEEE, d MMMM yyyy',
+      'id_ID',
+    ).format(DateTime.now());
 
     return Scaffold(
       appBar: AppBar(
@@ -49,157 +58,142 @@ class _HomePageState extends State<HomePage> {
               ? 'Hallo ${homeProvider.profileData['name'] ?? 'Pengguna'}'
               : 'Hallo Pengguna',
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _updateLocation,
+            tooltip: 'Perbarui Lokasi',
+          ),
+        ],
       ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: <Widget>[
-            DrawerHeader(
-              decoration: const BoxDecoration(color: Colors.blue),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  const Text(
-                    'Menu',
-                    style: TextStyle(color: Colors.white, fontSize: 24),
-                  ),
-                  const SizedBox(height: 8),
-                  if (homeProvider.profileData.isNotEmpty)
-                    Text(
-                      homeProvider.profileData['name'] ?? 'Nama Pengguna',
-                      style: const TextStyle(color: Colors.white, fontSize: 16),
-                    ),
-                ],
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.person),
-              title: const Text('Profil'),
-              onTap: () {
-                Navigator.pushNamed(context, '/profile');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.history),
-              title: const Text('Riwayat Absen'),
-              onTap: () {
-                Navigator.pushNamed(context, '/history_absen');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.logout),
-              title: const Text('Logout'),
-              onTap: () async {
-                await Provider.of<HomeProvider>(
-                  context,
-                  listen: false,
-                ).removeToken(context);
-                Navigator.pushReplacementNamed(context, '/login');
-              },
-            ),
-          ],
-        ),
-      ),
+      drawer: const HomeDrawer(), // Gunakan widget HomeDrawer
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
+          children: [
             Text(
               formattedDate,
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            Expanded(
-              flex: 2,
-              child: Container(
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey, width: 1.0),
-                  borderRadius: BorderRadius.circular(8.0),
-                ),
-                child: FutureBuilder<LatLng?>(
-                  future: _locationFuture,
-                  builder: (
-                    BuildContext context,
-                    AsyncSnapshot<LatLng?> snapshot,
-                  ) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    } else if (snapshot.hasError) {
-                      return Center(
-                        child: Text(
-                          'Gagal mendapatkan lokasi: ${snapshot.error}',
-                        ),
-                      );
-                    } else if (snapshot.data != null) {
-                      return GoogleMap(
-                        initialCameraPosition: CameraPosition(
-                          target: snapshot.data!,
-                          zoom: 17,
-                        ),
-                        markers: {
-                          Marker(
-                            markerId: const MarkerId('currentLocation'),
-                            position: snapshot.data!,
-                          ),
-                        },
-                        onMapCreated: (GoogleMapController controller) {
-                          absenProvider.setMapController(controller);
-                        },
-                        myLocationEnabled: true, // Aktifkan ikon lokasi saya
-                        myLocationButtonEnabled:
-                            false, // Nonaktifkan tombol default lokasi saya
-                      );
-                    } else {
-                      return const Center(
-                        child: Text('Lokasi belum tersedia.'),
-                      );
-                    }
-                  },
-                ),
+            Card(
+              // Tambahkan Card di sini
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: _buildMap(mapProvider),
               ),
             ),
             const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: <Widget>[
-                ElevatedButton(
-                  onPressed:
-                      absenProvider.isLoading
-                          ? null
-                          : () => absenProvider.checkIn(context),
-                  child:
-                      absenProvider.isLoading
-                          ? const CircularProgressIndicator(strokeWidth: 3.0)
-                          : const Text('Absen Masuk'),
-                ),
-                ElevatedButton(
-                  onPressed:
-                      absenProvider.isCheckOutLoading ||
-                              !absenProvider.isCheckOutEnabled
-                          ? null
-                          : () => absenProvider.checkOutProcess(context),
-                  child:
-                      absenProvider.isCheckOutLoading
-                          ? const CircularProgressIndicator(strokeWidth: 3.0)
-                          : const Text('Absen Pulang'),
-                ),
-              ],
-            ),
+            _buildAbsenButtons(absenProvider),
             if (absenProvider.message.isNotEmpty)
               Padding(
-                padding: const EdgeInsets.only(top: 8.0),
+                padding: const EdgeInsets.only(top: 8),
                 child: Text(absenProvider.message),
               ),
             if (absenProvider.checkOutMessage.isNotEmpty)
               Padding(
-                padding: const EdgeInsets.only(top: 8.0),
+                padding: const EdgeInsets.only(top: 8),
                 child: Text(absenProvider.checkOutMessage),
               ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildMap(MapService mapProvider) {
+    return SizedBox(
+      height:
+          MediaQuery.of(context).size.height *
+          0.4, // Sesuaikan tinggi sesuai kebutuhan
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(
+          16,
+        ), // Radius lebih kecil agar pas di dalam Card
+        child: GoogleMap(
+          initialCameraPosition: CameraPosition(
+            target: mapProvider.currentLatLng ?? const LatLng(0, 0),
+            zoom: 17,
+          ),
+          myLocationEnabled: true,
+          myLocationButtonEnabled: false,
+          mapToolbarEnabled: false,
+          zoomControlsEnabled: false,
+          onMapCreated: (controller) {
+            _mapController = controller;
+            mapProvider.setMapController(controller);
+          },
+          markers: {},
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAbsenButtons(AbsenProvider absenProvider) {
+    return Row(
+      children: [
+        Expanded(
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed:
+                absenProvider.isLoading
+                    ? null
+                    : () => absenProvider.checkIn(context),
+            child:
+                absenProvider.isLoading
+                    ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                    : const Text('Absen Masuk', style: TextStyle(fontSize: 16)),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed:
+                absenProvider.isCheckOutLoading ||
+                        !absenProvider.isCheckOutEnabled
+                    ? null
+                    : () => absenProvider.checkOutProcess(context),
+            child:
+                absenProvider.isCheckOutLoading
+                    ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                    : const Text(
+                      'Absen Pulang',
+                      style: TextStyle(fontSize: 16),
+                    ),
+          ),
+        ),
+      ],
     );
   }
 }
