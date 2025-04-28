@@ -46,5 +46,6 @@ flutter:
   assets:
     - assets/images/bg_screen3.jpg
     - assets/images/logo_app1.png
+    - assets/images/lottie_logo1.json
 
   

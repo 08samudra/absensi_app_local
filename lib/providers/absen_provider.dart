@@ -1,11 +1,8 @@
 import 'package:absensi_app/db/data_access_object/attendace_dao.dart';
-// import 'package:absensi_app/providers/auth_provider.dart';
-// import 'package:absensi_app/providers/map_provider.dart'; // Import MapProvider
 import 'package:absensi_app/services/auth_service.dart';
 import 'package:absensi_app/services/map_service.dart';
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart'; // Import untuk LatLng
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:geocoding/geocoding.dart';

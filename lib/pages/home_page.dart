@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:absensi_app/widgets/home_drawer.dart';
 import 'package:absensi_app/providers/absen_provider.dart';
 import 'package:absensi_app/providers/home_provider.dart';
@@ -16,6 +17,8 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   GoogleMapController? _mapController;
+  late Timer _timer;
+  String _currentTime = DateFormat('HH:mm:ss').format(DateTime.now());
 
   @override
   void initState() {
@@ -28,6 +31,19 @@ class _HomePageState extends State<HomePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<HomeProvider>(context, listen: false).fetchProfile(context);
     });
+
+    // Timer untuk update jam tiap detik
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      setState(() {
+        _currentTime = DateFormat('HH:mm:ss').format(DateTime.now());
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
   }
 
   void _updateLocation() async {
@@ -66,27 +82,14 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      drawer: const HomeDrawer(), // Gunakan widget HomeDrawer
+      drawer: const HomeDrawer(),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            Text(
-              formattedDate,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
+            _buildDateAndClock(formattedDate),
             const SizedBox(height: 16),
-            Card(
-              // Tambahkan Card di sini
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: _buildMap(mapProvider),
-              ),
-            ),
+            _buildMapCard(mapProvider),
             const SizedBox(height: 16),
             _buildAbsenButtons(absenProvider),
             if (absenProvider.message.isNotEmpty)
@@ -105,24 +108,60 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Widget _buildDateAndClock(String formattedDate) {
+    return Column(
+      children: [
+        Text(
+          formattedDate,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
+          decoration: BoxDecoration(
+            color: const Color.fromARGB(255, 114, 135, 150).withOpacity(0.8),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            _currentTime,
+            style: const TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+              letterSpacing: 2,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMapCard(MapService mapProvider) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: _buildMap(mapProvider),
+      ),
+    );
+  }
+
   Widget _buildMap(MapService mapProvider) {
     return SizedBox(
-      height:
-          MediaQuery.of(context).size.height *
-          0.4, // Sesuaikan tinggi sesuai kebutuhan
+      height: MediaQuery.of(context).size.height * 0.4,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(
-          16,
-        ), // Radius lebih kecil agar pas di dalam Card
+        borderRadius: BorderRadius.circular(16),
         child: GoogleMap(
           initialCameraPosition: CameraPosition(
             target: mapProvider.currentLatLng ?? const LatLng(0, 0),
             zoom: 17,
           ),
           myLocationEnabled: true,
-          myLocationButtonEnabled: false,
-          mapToolbarEnabled: false,
-          zoomControlsEnabled: false,
+          myLocationButtonEnabled: true,
+          mapToolbarEnabled: true,
+          zoomControlsEnabled: true,
+          zoomGesturesEnabled: true,
           onMapCreated: (controller) {
             _mapController = controller;
             mapProvider.setMapController(controller);

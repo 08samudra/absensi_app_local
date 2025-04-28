@@ -23,6 +23,34 @@ class MapService with ChangeNotifier {
 
   Future<LatLng?> getCurrentLocation() async {
     try {
+      bool serviceEnabled;
+      LocationPermission permission;
+
+      // 1. Cek apakah GPS Service aktif
+      serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        setErrorMessage('Layanan lokasi tidak aktif. Aktifkan GPS Anda.');
+        return null;
+      }
+
+      // 2. Cek permission
+      permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          setErrorMessage('Izin lokasi ditolak.');
+          return null;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        setErrorMessage(
+          'Izin lokasi ditolak permanen. Harap ubah di pengaturan.',
+        );
+        return null;
+      }
+
+      // 3. Kalau semua aman, ambil lokasi
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
