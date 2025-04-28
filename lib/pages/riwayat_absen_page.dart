@@ -40,7 +40,7 @@ class _RiwayatAbsenPageState extends State<RiwayatAbsenPage> {
     if (fullLocationName == null || fullLocationName.isEmpty) return '-';
     final parts = fullLocationName.split(', ');
     if (parts.length >= 3) return parts[parts.length - 3];
-    if (parts.length >= 1) return parts[0];
+    if (parts.isNotEmpty) return parts[0];
     return fullLocationName;
   }
 

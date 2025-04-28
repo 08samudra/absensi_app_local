@@ -113,7 +113,11 @@ class _HomePageState extends State<HomePage> {
       children: [
         Text(
           formattedDate,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Color.fromARGB(255, 99, 99, 99),
+          ),
         ),
         const SizedBox(height: 8),
         Container(
@@ -137,37 +141,61 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildMapCard(MapService mapProvider) {
+    final bool isMapReady = mapProvider.currentLatLng != null;
+
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: _buildMap(mapProvider),
+        child: SizedBox(
+          height: MediaQuery.of(context).size.height * 0.4,
+          child:
+              isMapReady
+                  ? _buildMap(mapProvider)
+                  : Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        SizedBox(
+                          width: 40,
+                          height: 40,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 3,
+                            color: Colors.blueAccent,
+                          ),
+                        ),
+                        SizedBox(height: 12),
+                        Text(
+                          "Memuat peta...",
+                          style: TextStyle(fontSize: 16, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+        ),
       ),
     );
   }
 
   Widget _buildMap(MapService mapProvider) {
-    return SizedBox(
-      height: MediaQuery.of(context).size.height * 0.4,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: GoogleMap(
-          initialCameraPosition: CameraPosition(
-            target: mapProvider.currentLatLng ?? const LatLng(0, 0),
-            zoom: 17,
-          ),
-          myLocationEnabled: true,
-          myLocationButtonEnabled: true,
-          mapToolbarEnabled: true,
-          zoomControlsEnabled: true,
-          zoomGesturesEnabled: true,
-          onMapCreated: (controller) {
-            _mapController = controller;
-            mapProvider.setMapController(controller);
-          },
-          markers: {},
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: GoogleMap(
+        initialCameraPosition: CameraPosition(
+          target: mapProvider.currentLatLng!,
+          zoom: 17,
         ),
+        myLocationEnabled: true,
+        myLocationButtonEnabled: true,
+        mapToolbarEnabled: true,
+        zoomControlsEnabled: true,
+        zoomGesturesEnabled: true,
+        onMapCreated: (controller) {
+          _mapController = controller;
+          mapProvider.setMapController(controller);
+        },
+        markers: {},
       ),
     );
   }
